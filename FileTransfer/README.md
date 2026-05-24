@@ -43,7 +43,7 @@ https://www.python.org/downloads/
 py server.py
 
 # 指定管理员密码（4位数字）
-py server.py 1981
+py server.py 0000
 
 # 不显示GUI窗口
 py server.py --no-gui
