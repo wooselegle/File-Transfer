@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件传输助手</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 移动端顶栏 -->
+        <div class="mobile-topbar">
+            <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" id="mobileMenuBtn">☰</button>
+            <div class="mobile-topbar-info">
+                <span class="mobile-device-name" id="mobileDeviceName">未命名设备</span>
+                <span class="mobile-status disconnected" id="mobileStatusDot"></span>
+            </div>
+        </div>
+
+        <!-- 侧边导航 -->
+        <nav class="sidebar" id="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📁</span>
+                <h1>文件传输助手</h1>
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-btn active" data-tab="files">
+                    <span>📄</span> 文件传输
+                </button>
+                <button class="nav-btn" data-tab="text">
+                    <span>💬</span> 文字传输
+                </button>
+                <button class="nav-btn" data-tab="admin">
+                    <span>⚙️</span> 后台管理
+                </button>
+            </div>
+
+            <!-- 设备信息 -->
+            <div class="connection-panel">
+                <h3>我的设备</h3>
+                <div class="input-group">
+                    <label>设备名称</label>
+                    <div class="input-row">
+                        <input type="text" id="deviceNameInput" placeholder="输入设备名称" maxlength="20">
+                        <button class="save-btn" onclick="saveDeviceName()">保存</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 连接状态 -->
+            <div class="connection-panel">
+                <h3>连接状态</h3>
+                <div id="connectionStatus" class="status-indicator disconnected">
+                    <span class="dot"></span>
+                    <span class="label">未连接</span>
+                </div>
+                <div id="peerListContainer" class="peer-list">
+                    <!-- 由 JS 动态渲染 -->
+                </div>
+                <div id="blockedWarning" class="blocked-warning" style="display:none">
+                    ⛔ 已被阻止
+                    <span id="blockedReason"></span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 文件传输面板 -->
+            <div class="tab-content active" id="tab-files">
+                <!-- 发送区域 -->
+                <div class="section send-section">
+                    <h2 class="section-title">📤 发送文件</h2>
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-content">
+                            <div class="drop-icon">📂</div>
+                            <p>拖拽文件或文件夹到这里</p>
+                            <p class="sub-text">或点击下方按钮浏览选择</p>
+                            <button class="browse-btn" onclick="document.getElementById('fileInput').click()">
+                                📁 浏览文件夹
+                            </button>
+                            <input type="file" id="fileInput" multiple webkitdirectory style="display:none">
+                            <button class="browse-files-btn" onclick="document.getElementById('fileInputSingle').click()">
+                                📄 选择文件
+                            </button>
+                            <input type="file" id="fileInputSingle" multiple style="display:none">
+                        </div>
+                    </div>
+                    <div id="fileSendList" class="file-list"></div>
+                    <div class="action-bar">
+                        <button class="send-btn" id="sendFilesBtn" disabled onclick="sendFiles()">
+                            🚀 发送文件
+                        </button>
+                        <button class="clear-btn" onclick="clearFileSendList()">🗑️ 清空列表</button>
+                    </div>
+                </div>
+
+                <!-- 接收区域 -->
+                <div class="section receive-section">
+                    <h2 class="section-title">📥 接收文件</h2>
+                    <div id="fileReceiveList" class="file-list">
+                        <div class="empty-hint">等待接收文件...</div>
+                    </div>
+                    <div class="action-bar">
+                        <button class="download-btn" id="downloadSelectedBtn" onclick="downloadSelectedFiles()" disabled>
+                            ⬇️ 下载选中文件
+                        </button>
+                        <button class="clear-btn" onclick="clearFileReceiveList()">🗑️ 清空列表</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 后台管理面板 -->
+            <div class="tab-content" id="tab-admin">
+                <div class="section" style="max-width: 800px; width: 100%; align-self: center;">
+                    <!-- 登录 -->
+                    <div id="adminLoginForm" class="admin-login">
+                        <h2 style="font-size: 18px;">🔐 后台管理</h2>
+                        <p style="font-size: 14px; color: var(--text-secondary);">请输入管理密码</p>
+                        <div class="input-row" style="max-width: 300px;">
+                            <input type="password" id="adminPasswordInput" placeholder="输入密码" onkeydown="if(event.key==='Enter')adminLogin()">
+                            <button class="send-btn" onclick="adminLogin()" style="flex:0">登录</button>
+                        </div>
+                        <div id="adminError" class="error-text" style="display:none"></div>
+                    </div>
+                    
+                    <!-- 后台主面板 -->
+                    <div id="adminPanel" style="display:none;">
+                        <h2 class="section-title" style="margin-bottom: 20px;">⚙️ 后台管理</h2>
+                        
+                        <!-- 白名单设置 -->
+                        <div class="admin-section">
+                            <h3>📋 白名单设置（IP地址）</h3>
+                            <label class="switch-label">
+                                <input type="checkbox" id="whitelistToggle" onchange="toggleWhitelist()">
+                                <span class="switch-slider"></span>
+                                启用白名单
+                            </label>
+                            <div class="hint-text">仅允许白名单中的IP地址连接</div>
+                            <div class="whitelist-editor">
+                                <div class="input-row">
+                                    <input type="text" id="whitelistIpInput" placeholder="输入IP地址，如192.168.1.100，回车添加" onkeydown="if(event.key==='Enter')addWhitelistIp()">
+                                    <button class="send-btn" onclick="addWhitelistIp()" style="flex:0">添加</button>
+                                </div>
+                                <div id="whitelistIps" class="whitelist-names"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- 设备管理 -->
+                        <div class="admin-section">
+                            <h3>📡 在线设备</h3>
+                            <div id="adminDeviceList" class="admin-device-list">
+                                <div class="empty-hint">加载中...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文字传输面板 -->
+            <div class="tab-content" id="tab-text">
+                <!-- 历史记录 -->
+                <div class="section history-section">
+                    <h2 class="section-title">📜 文字历史</h2>
+                    <div class="history-container" id="textHistory">
+                        <div class="empty-hint">暂无历史记录</div>
+                    </div>
+                    <div class="action-bar">
+                        <button class="clear-btn" onclick="clearTextHistory()">🗑️ 清空历史</button>
+                    </div>
+                </div>
+
+                <!-- 发送文字 -->
+                <div class="section text-send-section">
+                    <h2 class="section-title">✏️ 发送文字</h2>
+                    <textarea id="textInput" placeholder="在此输入要发送的文字...&#10;支持多行文本" rows="4"></textarea>
+                    <div class="action-bar">
+                        <button class="send-btn" id="sendTextBtn" onclick="sendText()" disabled>
+                            📤 发送文字
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+
+

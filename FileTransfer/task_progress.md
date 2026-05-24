@@ -1,0 +1,7 @@
+- [ ] 在 server.py 中新增文字历史持久化存储（JSON文件）
+- [ ] 在 server.py 中添加 /api/text_history 端点（GET获取、POST添加、DELETE删除单个）
+- [ ] 在 app.js 中改为发送/接收文字时上传到服务器
+- [ ] 在 app.js 中启动时从服务器拉取所有历史
+- [ ] 在 app.js 中添加单个删除功能（并同步到服务器）
+- [ ] 在 server.py 的 do_GET/do_POST 中注册新端点
+- [ ] 测试重启后历史是否保留
